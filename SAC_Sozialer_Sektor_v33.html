@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP Analytics Cloud | Planung für Diakonie, Caritas & soziale Träger</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sap:#0070F2;--sap-dk:#0050C0;--sap-lt:#EFF6FF;--sap-glow:rgba(0,112,242,0.2);
+  --bg:#FFF;--bg2:#F5F7FB;--border:#E2E8F4;
+  --text:#0C1221;--text-m:#4A5672;--text-d:#8494B0;
+  --dark:#06080F;--dim:rgba(255,255,255,0.6);--dimmer:rgba(255,255,255,0.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── SELECTOR ── */
+#selector{position:fixed;inset:0;z-index:9999;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
+#sel-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.sel-inner{position:relative;z-index:2;text-align:center;max-width:1060px;width:100%}
+.sel-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(0,112,242,0.12);border:1px solid rgba(0,112,242,0.35);padding:7px 18px;border-radius:100px;margin-bottom:24px;opacity:0;animation:fu .7s ease .3s forwards}
+.sel-logo{background:var(--sap);color:#fff;font-size:12px;font-weight:800;padding:3px 8px;border-radius:3px}
+.sel-badge-lbl{font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.8);letter-spacing:.3px}
+.sel-h{font-size:clamp(26px,3vw,44px);font-weight:800;color:#fff;line-height:1.1;letter-spacing:-1px;margin-bottom:10px;opacity:0;animation:fu .7s ease .5s forwards}
+.sel-sub{font-size:15px;color:var(--dim);font-weight:300;margin-bottom:44px;opacity:0;animation:fu .7s ease .7s forwards}
+.sel-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;opacity:0;animation:fu .7s ease .9s forwards;text-align:left}
+
+/* WorkflowBuilderCard */
+.wf-card{background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.28);transition:transform .3s cubic-bezier(.25,1,.5,1),box-shadow .3s}
+.wf-card:hover{transform:translateY(-6px);box-shadow:0 22px 52px rgba(0,0,0,0.45)}
+.wf-img{height:136px;width:100%;position:relative;overflow:hidden}
+.wf-img-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.22),transparent)}
+.wf-body{padding:15px}
+.wf-meta{display:flex;align-items:center;gap:6px;font-size:11px;color:#6B7280;margin-bottom:5px}
+.wf-dot{width:7px;height:7px;border-radius:50%;background:#22C55E;flex-shrink:0}
+.wf-title{font-size:16.5px;font-weight:700;color:#0C1221;line-height:1.25}
+.wf-details{max-height:0;overflow:hidden;opacity:0;transition:max-height .32s ease,opacity .28s ease,margin-top .28s ease;margin-top:0}
+.wf-card:hover .wf-details{max-height:200px;opacity:1;margin-top:9px}
+.wf-desc{font-size:12.5px;color:#4A5568;line-height:1.55;margin-bottom:9px}
+.wf-tags{display:flex;flex-wrap:wrap;gap:5px}
+.wf-tag{font-size:10px;padding:2px 9px;border-radius:100px;font-weight:600;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0}
+.wf-footer{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-top:1px solid #E2E8F0}
+.wf-avs{display:flex}
+.wf-av{width:24px;height:24px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-left:-5px}
+.wf-av:first-child{margin-left:0}
+.wf-acts{display:flex}
+.wf-act{width:24px;height:24px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;margin-left:-5px}
+.wf-act:first-child{margin-left:0}
+
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#selector.out{opacity:0;transition:opacity .6s ease;pointer-events:none}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;height:58px;display:flex;align-items:center;padding:0 40px;background:rgba(255,255,255,0.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);box-shadow:0 1px 10px rgba(0,0,0,0.06)}
+.nav-l{display:flex;align-items:center;gap:14px}
+.nav-sap{background:var(--sap);color:#fff;font-size:12.5px;font-weight:800;padding:4px 8px;border-radius:4px}
+.nav-sep{width:1px;height:18px;background:var(--border)}
+.nav-title{font-size:13px;font-weight:500;color:var(--text-m)}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-switcher{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:3px}
+.nsw{padding:5px 13px;background:none;border:none;border-radius:5px;font-size:12px;font-weight:500;color:var(--text-m);cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.nsw.active{background:var(--sap);color:#fff}
+.nsw:hover:not(.active){color:var(--sap)}
+.btn-nav{background:var(--sap);color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-nav:hover{background:var(--sap-dk);transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{min-height:100vh;position:relative;overflow:hidden;display:flex;align-items:center;padding:100px 40px 60px}
+.hero-bg{position:absolute;inset:0}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse 90% 90% at 50% 50%,black 30%,transparent 100%)}
+.hero-inner{position:relative;z-index:2;display:grid;grid-template-columns:1fr 480px;gap:60px;align-items:center;max-width:1360px;margin:0 auto;width:100%}
+.hero-pill{display:inline-flex;align-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden;margin-bottom:24px;width:fit-content}
+.hp-sap{display:flex;align-items:center;gap:8px;padding:9px 14px;background:rgba(255,255,255,.12);border-right:1px solid rgba(255,255,255,.15)}
+.hp-txt{padding:9px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,.88)}
+.hero-ey{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px}
+.hero-h{font-size:clamp(34px,3.8vw,58px);font-weight:800;line-height:1.06;letter-spacing:-1.5px;color:#fff;margin-bottom:20px}
+.hero-h .soft{font-weight:300;color:rgba(255,255,255,.7);display:block}
+.hero-h .hi{display:block;color:#7DD3FC}
+.hero-p{font-size:16px;color:rgba(255,255,255,.68);line-height:1.75;max-width:480px;margin-bottom:34px;font-weight:300}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:44px}
+.btn-w{background:#fff;color:var(--sap);border:2px solid #fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-w:hover{background:#EFF6FF;transform:translateY(-2px)}
+.btn-gh{background:rgba(255,255,255,.09);color:#fff;border:1.5px solid rgba(255,255,255,.28);padding:12px 24px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-gh:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.55)}
+.hero-stats{display:flex;gap:28px}
+.hs{padding-left:16px;border-left:2px solid rgba(255,255,255,.22)}
+.hs-n{font-size:26px;font-weight:800;color:#fff;line-height:1}
+.hs-n .u{font-size:15px;font-weight:300;color:rgba(255,255,255,.55)}
+.hs-l{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+
+/* Dashboard mockup */
+.hero-dash{border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.1);box-shadow:0 28px 56px rgba(0,0,0,.5);background:#131929}
+.db{background:#0A1628;padding:10px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid rgba(255,255,255,.07)}
+.dbd{display:flex;gap:5px}
+.dbt{width:9px;height:9px;border-radius:50%}
+.dbt1{background:#FF5F57}.dbt2{background:#FEBC2E}.dbt3{background:#28C840}
+.dbu{flex:1;background:rgba(255,255,255,.06);border-radius:4px;padding:4px 9px;font-size:10px;color:var(--dimmer);font-family:'JetBrains Mono',monospace}
+.dlv{display:flex;align-items:center;gap:4px;font-size:9px;color:#4ADE80;font-family:'JetBrains Mono',monospace}
+.dlv::before{content:'';width:5px;height:5px;border-radius:50%;background:#4ADE80;animation:pg 2s infinite}
+@keyframes pg{0%,100%{opacity:1}50%{opacity:.25}}
+.db-body{padding:16px}
+.db-ttl{font-size:11px;font-weight:600;color:#fff;margin-bottom:12px}
+.db-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.dkp{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:9px 11px}
+.dkp-v{font-size:17px;font-weight:700;line-height:1}
+.dkp-l{font-size:8.5px;color:var(--dimmer);margin-top:2px}
+.db-ch{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:11px;height:76px;display:flex;align-items:flex-end;gap:4px}
+.dc{border-radius:2px 2px 0 0;flex:1}
+.db-cl{font-size:8px;color:var(--dimmer);margin-top:5px;text-align:right;font-family:'JetBrains Mono',monospace}
+
+/* ── SECTIONS ── */
+.sec{padding:88px 40px}
+.si{max-width:1360px;margin:0 auto}
+.ey{font-size:11px;font-weight:600;color:var(--sap);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+.h2{font-size:clamp(28px,2.8vw,40px);font-weight:800;line-height:1.1;letter-spacing:-1px;color:var(--text)}
+.h2 b{color:var(--sap)}
+.lead{font-size:15.5px;color:var(--text-m);line-height:1.72;font-weight:300;max-width:580px;margin-top:12px}
+
+/* Problem cards */
+.pc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:48px}
+.pc{background:#fff;border:1px solid var(--border);border-radius:14px;padding:26px;position:relative;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.04);transition:box-shadow .2s,transform .2s}
+.pc:hover{box-shadow:0 8px 24px rgba(0,0,0,.09);transform:translateY(-3px)}
+.pc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#DC2626,#F87171)}
+.pc-ico{width:38px;height:38px;background:#FEE2E2;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0}
+.pc-tag{font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;font-family:'JetBrains Mono',monospace}
+.pc-ttl{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.3}
+.pc-txt{font-size:13px;color:var(--text-m);line-height:1.62;font-weight:300}
+.pc-items{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.pc-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#B91C1C}
+.pcx{width:14px;height:14px;border-radius:50%;background:#FCA5A5;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* Features */
+.ft-tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:3px;margin:36px 0;width:fit-content}
+.ftb{padding:8px 20px;background:none;border:none;border-radius:8px;font-size:13px;font-weight:500;color:var(--text-m);cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.ftb:hover{color:var(--sap)}
+.ftb.active{background:var(--sap);color:#fff;box-shadow:0 3px 12px var(--sap-glow)}
+.fp{display:none}
+.fp.active{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.fp-tag{display:inline-flex;padding:4px 11px;border-radius:100px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:rgba(0,112,242,.08);color:var(--sap);border:1px solid rgba(0,112,242,.2);margin-bottom:14px;font-family:'JetBrains Mono',monospace}
+.fp-h{font-size:clamp(22px,2.3vw,32px);font-weight:700;line-height:1.15;letter-spacing:-.5px;margin-bottom:13px;color:var(--text)}
+.fp-h b{color:var(--sap)}
+.fp-p{font-size:14.5px;color:var(--text-m);line-height:1.72;margin-bottom:24px;font-weight:300}
+.fp-ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.fp-ul li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text);line-height:1.5}
+.fp-ck{min-width:19px;height:19px;background:rgba(0,112,242,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--sap);font-size:10px;flex-shrink:0;margin-top:1px;font-weight:700}
+.mock{background:#fff;border-radius:12px;box-shadow:0 8px 26px rgba(0,112,242,.12);overflow:hidden;border:1px solid var(--border)}
+.mock-bar{background:#0A2240;padding:11px 14px;display:flex;align-items:center;gap:7px}
+.mock-bar .dbd{display:flex;gap:5px}
+.mock-url{flex:1;background:rgba(255,255,255,.08);border-radius:3px;padding:3px 9px;font-size:10px;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;margin-left:8px}
+.mock-body{padding:18px}
+.mock-kpis{display:flex;gap:9px;margin-bottom:14px}
+.mkp{flex:1;background:var(--bg2);border-radius:7px;padding:11px;border:1px solid var(--border)}
+.mkp-v{font-size:17px;font-weight:800;line-height:1}
+.mkp-l{font-size:9px;color:var(--text-d);margin-top:2px}
+.mkp-s{font-size:10px;font-weight:600;margin-top:3px}
+.mock-ct{font-size:10px;font-weight:700;color:var(--text-d);margin-bottom:9px;text-transform:uppercase;letter-spacing:.8px}
+.mock-row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.mock-lbl{font-size:10px;color:var(--text-d);width:88px;text-align:right;flex-shrink:0}
+.mock-track{flex:1;background:var(--bg2);border-radius:3px;height:17px;overflow:hidden}
+.mock-fill{height:100%;border-radius:3px}
+.mock-val{font-size:10px;font-weight:700;width:34px}
+
+/* CTA */
+.cta-sec{padding:88px 40px;background:var(--bg2);border-top:1px solid var(--border)}
+.cta-in{max-width:840px;margin:0 auto;text-align:center}
+.cta-mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sap);letter-spacing:2px;text-transform:uppercase;margin-bottom:18px;display:block}
+.cta-h{font-size:clamp(28px,3.2vw,44px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:8px;color:var(--text)}
+.cta-h b{color:var(--sap)}
+.cta-urg{font-size:14.5px;color:#DC2626;font-weight:600;margin-bottom:14px}
+.cta-p{font-size:15.5px;color:var(--text-m);line-height:1.72;margin-bottom:34px;font-weight:300;max-width:560px;margin-left:auto;margin-right:auto}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-cp{background:var(--sap);color:#fff;border:2px solid var(--sap);padding:13px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-cp:hover{background:var(--sap-dk);transform:translateY(-2px);box-shadow:0 10px 26px var(--sap-glow)}
+.btn-cs{background:#fff;color:var(--sap);border:2px solid var(--border);padding:13px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-cs:hover{border-color:var(--sap);background:var(--sap-lt)}
+.cta-note{font-size:12px;color:var(--text-d);margin-top:14px}
+
+/* Contact */
+.con-sec{padding:88px 40px;background:#fff;border-top:1px solid var(--border)}
+footer{background:var(--text);padding:26px 40px;display:flex;justify-content:space-between;align-items:center}
+.fc{font-size:12px;color:rgba(255,255,255,.3)}
+.fl{display:flex;gap:20px}
+.fl a{color:rgba(255,255,255,.28);font-size:12px;text-decoration:none}
+.fl a:hover{color:rgba(255,255,255,.6)}
+
+.rev{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.rev.on{opacity:1;transform:none}
+.d1{transition-delay:.07s}.d2{transition-delay:.14s}.d3{transition-delay:.21s}.d4{transition-delay:.28s}
+.counter{display:inline-block}
+
+@media(max-width:1024px){
+  .hero-inner,.fp.active{grid-template-columns:1fr}
+  .hero-dash{display:none}
+  .pc-grid{grid-template-columns:1fr 1fr}
+  .nav-switcher{display:none}
+  .sel-cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- SELECTOR -->
+<div id="selector">
+  <canvas id="sel-canvas"></canvas>
+  <div class="sel-inner">
+    <div class="sel-badge"><div class="sel-logo">SAP</div><span class="sel-badge-lbl">Analytics Cloud · Sozialer Sektor</span></div>
+    <h1 class="sel-h">Womit können wir Ihnen<br>helfen?</h1>
+    <p class="sel-sub">Wählen Sie Ihren Planungsbereich – Inhalte und Beispiele werden passend für Ihre Einrichtung konfiguriert.</p>
+    <div class="sel-cards">
+
+      <!-- HAUSHALTSPLANUNG -->
+      <div class="wf-card" onclick="go(0)">
+        <div class="wf-img" style="background:linear-gradient(135deg,#001F54,#0060D0)">
+          <div class="wf-img-ov"></div>
+          <svg viewBox="0 0 360 136" style="position:absolute;inset:0;width:100%;height:100%">
+            <rect x="0" y="0" width="360" height="136" fill="none"/>
+            <line x1="0" y1="96" x2="360" y2="96" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+            <line x1="0" y1="66" x2="360" y2="66" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+            <line x1="0" y1="36" x2="360" y2="36" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+            <rect x="20" y="62" width="26" height="34" rx="3" fill="rgba(96,165,250,.7)"/>
+            <rect x="58" y="42" width="26" height="54" rx="3" fill="rgba(96,165,250,.85)"/>
+            <rect x="96" y="54" width="26" height="42" rx="3" fill="rgba(96,165,250,.7)"/>
+            <rect x="134" y="28" width="26" height="68" rx="3" fill="rgba(240,171,0,.9)"/>
+            <rect x="172" y="46" width="26" height="50" rx="3" fill="rgba(96,165,250,.75)"/>
+            <rect x="210" y="34" width="26" height="62" rx="3" fill="rgba(96,165,250,.85)"/>
+            <rect x="248" y="22" width="26" height="74" rx="3" fill="rgba(240,171,0,.9)"/>
+            <rect x="286" y="40" width="26" height="56" rx="3" fill="rgba(96,165,250,.8)"/>
+            <polyline points="33,58 71,40 109,51 147,26 185,43 223,32 261,20 299,38" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="1.5" stroke-dasharray="4 2"/>
+            <rect x="14" y="8" width="44" height="17" rx="3" fill="rgba(0,112,242,.8)"/>
+            <text x="36" y="20.5" font-family="Inter" font-size="8.5" font-weight="800" fill="white" text-anchor="middle">SAC</text>
+            <text x="346" y="122" font-family="monospace" font-size="8" fill="rgba(255,255,255,.38)" text-anchor="end">Haushalt · Live</text>
+          </svg>
+        </div>
+        <div class="wf-body">
+          <div class="wf-meta"><div class="wf-dot"></div><span>Aktiv</span><span>·</span><span>Use Case 01</span></div>
+          <div class="wf-title">Haushaltsplanung</div>
+          <div class="wf-details">
+            <div class="wf-desc">Budgets, Zuschüsse und Szenarien für Diakonie, Caritas, AWO und kirchliche Einrichtungen – integriert über alle Häuser.</div>
+            <div class="wf-tags"><span class="wf-tag">Budgetplanung</span><span class="wf-tag">Zuschüsse</span><span class="wf-tag">Szenarioplanung</span><span class="wf-tag">Konsolidierung</span></div>
+          </div>
+        </div>
+        <div class="wf-footer">
+          <div class="wf-avs">
+            <div class="wf-av" style="background:#0070F2">GF</div>
+            <div class="wf-av" style="background:#0891B2">CO</div>
+            <div class="wf-av" style="background:#1D4ED8">VW</div>
+          </div>
+          <div class="wf-acts">
+            <div class="wf-act" style="background:#0070F2"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="wf-act" style="background:#0891B2"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+            <div class="wf-act" style="background:#1D4ED8"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERSONALKOSTENPLANUNG -->
+      <div class="wf-card" onclick="go(1)">
+        <div class="wf-img" style="background:linear-gradient(135deg,#001A12,#005C35)">
+          <div class="wf-img-ov"></div>
+          <svg viewBox="0 0 360 136" style="position:absolute;inset:0;width:100%;height:100%">
+            <text x="14" y="28" font-family="Inter" font-size="9" fill="rgba(255,255,255,.5)" font-weight="600">Demografierisiko je Bereich</text>
+            <rect x="14" y="34" width="332" height="13" rx="3" fill="rgba(255,255,255,.07)"/>
+            <rect x="14" y="34" width="272" height="13" rx="3" fill="rgba(220,38,38,.65)"/>
+            <text x="293" y="44.5" font-family="Inter" font-size="8" fill="rgba(248,113,113,.95)" font-weight="700">82</text>
+            <rect x="14" y="54" width="332" height="13" rx="3" fill="rgba(255,255,255,.07)"/>
+            <rect x="14" y="54" width="218" height="13" rx="3" fill="rgba(220,38,38,.52)"/>
+            <text x="239" y="64.5" font-family="Inter" font-size="8" fill="rgba(248,113,113,.95)" font-weight="700">66</text>
+            <rect x="14" y="74" width="332" height="13" rx="3" fill="rgba(255,255,255,.07)"/>
+            <rect x="14" y="74" width="172" height="13" rx="3" fill="rgba(217,119,6,.75)"/>
+            <text x="193" y="84.5" font-family="Inter" font-size="8" fill="rgba(251,191,36,.95)" font-weight="700">52</text>
+            <rect x="14" y="94" width="332" height="13" rx="3" fill="rgba(255,255,255,.07)"/>
+            <rect x="14" y="94" width="108" height="13" rx="3" fill="rgba(5,150,105,.8)"/>
+            <text x="129" y="104.5" font-family="Inter" font-size="8" fill="rgba(52,211,153,.95)" font-weight="700">33</text>
+            <text x="14" y="122" font-family="monospace" font-size="8" fill="rgba(255,255,255,.35)">Pflegefachkräfte</text>
+            <text x="100" y="122" font-family="monospace" font-size="8" fill="rgba(255,255,255,.35)">Sozialarbeit</text>
+            <text x="180" y="122" font-family="monospace" font-size="8" fill="rgba(255,255,255,.35)">Kita</text>
+            <text x="220" y="122" font-family="monospace" font-size="8" fill="rgba(255,255,255,.35)">Verwaltung</text>
+            <rect x="14" y="8" width="44" height="17" rx="3" fill="rgba(5,150,105,.8)"/>
+            <text x="36" y="20.5" font-family="Inter" font-size="8.5" font-weight="800" fill="white" text-anchor="middle">SAC</text>
+          </svg>
+        </div>
+        <div class="wf-body">
+          <div class="wf-meta"><div class="wf-dot"></div><span>Aktiv</span><span>·</span><span>Use Case 02</span></div>
+          <div class="wf-title">Personalkostenplanung</div>
+          <div class="wf-details">
+            <div class="wf-desc">Stellenpläne, Altersstruktur und Nachfolgeplanung – für Pflegefachkräfte, Sozialarbeiter und Kita-Personal.</div>
+            <div class="wf-tags"><span class="wf-tag">Stellenplan</span><span class="wf-tag">Demografierisiko</span><span class="wf-tag">Nachfolge</span><span class="wf-tag">KI-Analyse</span></div>
+          </div>
+        </div>
+        <div class="wf-footer">
+          <div class="wf-avs">
+            <div class="wf-av" style="background:#059669">HR</div>
+            <div class="wf-av" style="background:#0D9488">PD</div>
+            <div class="wf-av" style="background:#0070F2">GF</div>
+          </div>
+          <div class="wf-acts">
+            <div class="wf-act" style="background:#059669"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div class="wf-act" style="background:#0D9488"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="wf-act" style="background:#0070F2"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANZPLANUNG -->
+      <div class="wf-card" onclick="go(2)">
+        <div class="wf-img" style="background:linear-gradient(135deg,#120820,#4C1D95)">
+          <div class="wf-img-ov"></div>
+          <svg viewBox="0 0 360 136" style="position:absolute;inset:0;width:100%;height:100%">
+            <circle cx="180" cy="72" r="50" fill="none" stroke="rgba(167,139,250,.14)" stroke-width="16"/>
+            <circle cx="180" cy="72" r="50" fill="none" stroke="rgba(124,58,237,.6)" stroke-width="16" stroke-dasharray="165 149" stroke-dashoffset="-18" stroke-linecap="round"/>
+            <circle cx="180" cy="72" r="50" fill="none" stroke="rgba(96,165,250,.5)" stroke-width="16" stroke-dasharray="92 222" stroke-dashoffset="-183" stroke-linecap="round"/>
+            <circle cx="180" cy="72" r="50" fill="none" stroke="rgba(52,211,153,.45)" stroke-width="16" stroke-dasharray="57 257" stroke-dashoffset="-275" stroke-linecap="round"/>
+            <text x="180" y="68" font-family="Inter" font-size="13" font-weight="800" fill="white" text-anchor="middle">100%</text>
+            <text x="180" y="80" font-family="monospace" font-size="7" fill="rgba(255,255,255,.5)" text-anchor="middle">KONSOLIDIERT</text>
+            <line x1="106" y1="30" x2="148" y2="50" stroke="rgba(167,139,250,.3)" stroke-width="1" stroke-dasharray="3 2"/>
+            <line x1="254" y1="30" x2="212" y2="50" stroke="rgba(96,165,250,.3)" stroke-width="1" stroke-dasharray="3 2"/>
+            <line x1="70" y1="88" x2="130" y2="80" stroke="rgba(52,211,153,.3)" stroke-width="1" stroke-dasharray="3 2"/>
+            <line x1="290" y1="88" x2="230" y2="80" stroke="rgba(167,139,250,.3)" stroke-width="1" stroke-dasharray="3 2"/>
+            <circle cx="104" cy="28" r="8" fill="rgba(167,139,250,.4)"/>
+            <circle cx="256" cy="28" r="8" fill="rgba(96,165,250,.4)"/>
+            <circle cx="68" cy="90" r="8" fill="rgba(52,211,153,.4)"/>
+            <circle cx="292" cy="90" r="8" fill="rgba(167,139,250,.4)"/>
+            <text x="104" y="20" font-family="monospace" font-size="7" fill="rgba(255,255,255,.5)" text-anchor="middle">Haus A</text>
+            <text x="256" y="20" font-family="monospace" font-size="7" fill="rgba(255,255,255,.5)" text-anchor="middle">Haus B</text>
+            <text x="62" y="104" font-family="monospace" font-size="7" fill="rgba(255,255,255,.5)" text-anchor="middle">Kita</text>
+            <text x="296" y="104" font-family="monospace" font-size="7" fill="rgba(255,255,255,.5)" text-anchor="middle">Ambulant</text>
+            <rect x="14" y="8" width="44" height="17" rx="3" fill="rgba(124,58,237,.8)"/>
+            <text x="36" y="20.5" font-family="Inter" font-size="8.5" font-weight="800" fill="white" text-anchor="middle">SAC</text>
+          </svg>
+        </div>
+        <div class="wf-body">
+          <div class="wf-meta"><div class="wf-dot"></div><span>Aktiv</span><span>·</span><span>Use Case 03</span></div>
+          <div class="wf-title">Finanzplanung</div>
+          <div class="wf-details">
+            <div class="wf-desc">GuV, Bilanz und Liquidität über alle Einrichtungen – Pflegeheime, Kitas, ambulante Dienste – auf Trägerebene konsolidiert.</div>
+            <div class="wf-tags"><span class="wf-tag">Träger-Konsolidierung</span><span class="wf-tag">GuV & Bilanz</span><span class="wf-tag">Liquidität</span><span class="wf-tag">Verwendungsnachweise</span></div>
+          </div>
+        </div>
+        <div class="wf-footer">
+          <div class="wf-avs">
+            <div class="wf-av" style="background:#7C3AED">GF</div>
+            <div class="wf-av" style="background:#6D28D9">FI</div>
+            <div class="wf-av" style="background:#0070F2">WP</div>
+          </div>
+          <div class="wf-acts">
+            <div class="wf-act" style="background:#7C3AED"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="wf-act" style="background:#6D28D9"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="wf-act" style="background:#0070F2"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MAIN PAGE -->
+<div id="main" style="opacity:0;transition:opacity .8s ease">
+
+<nav>
+  <div class="nav-l">
+    <div class="nav-sap">SAP</div>
+    <div class="nav-sep"></div>
+    <span class="nav-title" id="nav-ttl">Analytics Cloud · Diakonie, Caritas &amp; AWO</span>
+  </div>
+  <div class="nav-r">
+    <div class="nav-switcher">
+      <button class="nsw active" onclick="sw(0)">Haushaltsplanung</button>
+      <button class="nsw" onclick="sw(1)">Personalkostenplanung</button>
+      <button class="nsw" onclick="sw(2)">Finanzplanung</button>
+    </div>
+    <button class="btn-nav" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Demo anfragen ↗</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero-sec">
+  <div class="hero-bg" id="hbg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-pill">
+        <div class="hp-sap"><div class="nav-sap" style="font-size:11px;padding:3px 7px">SAP</div></div>
+        <div class="hp-txt" id="h-pill">Haushaltsplanung · Diakonie &amp; Caritas</div>
+      </div>
+      <div class="hero-ey" id="h-ey">Diakonie · Caritas · AWO · Kirchliche Einrichtungen</div>
+      <h1 class="hero-h">
+        <span class="soft" id="h-soft">Haushaltsplanung für</span>
+        <span id="h-main">Diakonie &amp; Caritas –</span>
+        <span class="hi" id="h-hi">endlich beherrschbar.</span>
+      </h1>
+      <p class="hero-p" id="h-p">Kirchensteuern sinken, Pflegesätze stagnieren, Eigenmittel werden knapper – und trotzdem müssen Budgets für dutzende Einrichtungen abgestimmt werden. SAC gibt Ihnen den Überblick zurück.</p>
+      <div class="hero-btns">
+        <button class="btn-w" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Demo vereinbaren →</button>
+        <button class="btn-gh" onclick="document.getElementById('problems').scrollIntoView({behavior:'smooth'})">Herausforderungen ansehen</button>
+      </div>
+      <div class="hero-stats" id="h-stats">
+        <div class="hs"><div class="hs-n">–<span class="counter" data-target="60">0</span><span class="u">%</span></div><div class="hs-l">Planungsaufwand</div></div>
+        <div class="hs"><div class="hs-n"><span class="counter" data-target="100">0</span><span class="u">%</span></div><div class="hs-l">Budgetkonform</div></div>
+        <div class="hs"><div class="hs-n">Echtzeit</div><div class="hs-l">Konsolidierung</div></div>
+      </div>
+    </div>
+    <div class="hero-dash">
+      <div class="db">
+        <div class="dbd"><div class="dbt dbt1"></div><div class="dbt dbt2"></div><div class="dbt dbt3"></div></div>
+        <div class="dbu" id="h-url">sac · haushaltsplanung · diakonisches-werk</div>
+        <div class="dlv">LIVE</div>
+      </div>
+      <div class="db-body">
+        <div class="db-ttl" id="h-dtitle">Haushalts-Cockpit · Diakonisches Werk</div>
+        <div class="db-kpis" id="h-dkpis">
+          <div class="dkp"><div class="dkp-v" style="color:#60A5FA">Plan ✓</div><div class="dkp-l">Budget gesamt</div></div>
+          <div class="dkp"><div class="dkp-v" style="color:#4ADE80">On Track</div><div class="dkp-l">Budgetstatus</div></div>
+          <div class="dkp"><div class="dkp-v" style="color:#60A5FA">–60%</div><div class="dkp-l">Aufwand</div></div>
+        </div>
+        <div class="db-ch" id="h-dchart">
+          <div class="dc" style="background:rgba(0,112,242,.7);height:68%"></div>
+          <div class="dc" style="background:rgba(0,112,242,.8);height:83%"></div>
+          <div class="dc" style="background:rgba(0,112,242,.65);height:54%"></div>
+          <div class="dc" style="background:rgba(240,171,0,.9);height:90%"></div>
+          <div class="dc" style="background:rgba(0,112,242,.75);height:66%"></div>
+          <div class="dc" style="background:rgba(0,112,242,.65);height:58%"></div>
+          <div class="dc" style="background:rgba(240,171,0,.85);height:86%"></div>
+          <div class="dc" style="background:rgba(0,112,242,.8);height:73%"></div>
+        </div>
+        <div class="db-cl" id="h-dclbl">Budgetentwicklung 2025 · alle Einrichtungen</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEMS -->
+<section class="sec" style="background:var(--bg2)" id="problems">
+  <div class="si">
+    <div class="rev">
+      <div class="ey">// Kennen Sie das?</div>
+      <h2 class="h2">Der Alltag in Ihrer Einrichtung –<br><b style="color:#DC2626">noch immer so</b></h2>
+      <p class="lead">Diakonie, Caritas, AWO und kirchliche Einrichtungen kämpfen täglich mit denselben strukturellen Problemen. Nicht weil die Menschen nicht gut genug arbeiten – sondern weil die Werkzeuge fehlen.</p>
+    </div>
+    <div class="pc-grid">
+      <div class="pc rev d1">
+        <div class="pc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <div class="pc-tag">Problem 1 · Excel</div>
+        <div class="pc-ttl">Budgets in Tabellen – jede Einrichtung ihre eigene Datei</div>
+        <p class="pc-txt">Das Pflegeheim hat eine Excel, die Kita eine andere, der ambulante Dienst eine dritte. Konsolidierung heißt: alles manuell zusammenkopieren, Fehler suchen, neu abstimmen.</p>
+        <div class="pc-items">
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Wochen Aufwand für einen Gesamtüberblick</div>
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Versionschaos bei jeder Änderung</div>
+        </div>
+      </div>
+      <div class="pc rev d2">
+        <div class="pc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="pc-tag">Problem 2 · Budget</div>
+        <div class="pc-ttl">Kirchensteuern sinken – der Handlungsspielraum auch</div>
+        <p class="pc-txt">Kirchensteuermittel gehen seit Jahren zurück. Pflegesätze decken die echten Kosten kaum. Zuschüsse werden kurzfristig gekürzt. Ohne Szenarioplanung trifft das jede Einrichtung unvorbereitet.</p>
+        <div class="pc-items">
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Keine Früherkennung bei Finanzierungslücken</div>
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Zuschuss-Wegfall trifft unvorbereitet</div>
+        </div>
+      </div>
+      <div class="pc rev d3">
+        <div class="pc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+        <div class="pc-tag">Problem 3 · Fachkräfte</div>
+        <div class="pc-ttl">Pflegefachkräfte fehlen – Stellen bleiben monatelang offen</div>
+        <p class="pc-txt">Examinierte Pflegekräfte, Sozialarbeiter, Kita-Fachkräfte: der Markt ist leer. Einrichtungen können nicht planen, weil niemand weiß, wie viele Stellen nächstes Jahr noch besetzt sind.</p>
+        <div class="pc-items">
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Personalkosten nicht verlässlich planbar</div>
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Vakanzen reißen Löcher ins Budget</div>
+        </div>
+      </div>
+      <div class="pc rev d4">
+        <div class="pc-ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
+        <div class="pc-tag">Problem 4 · Demografie</div>
+        <div class="pc-ttl">Langjährige Mitarbeitende gehen – und niemand übernimmt</div>
+        <p class="pc-txt">In vielen Diakonie- und Caritas-Einrichtungen sind 30–40% der Belegschaft über 55. Wer geht 2027 in Rente? Welche Stellen können nicht nachbesetzt werden? Kaum eine Einrichtung hat darauf eine Antwort.</p>
+        <div class="pc-items">
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Kein Überblick über Altersstruktur</div>
+          <div class="pc-item"><div class="pcx"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>Nachfolge beginnt wenn die Stelle schon vakant ist</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="sec" style="background:#fff" id="features">
+  <div class="si">
+    <div class="rev">
+      <div class="ey" id="f-ey">// SAP Analytics Cloud · Haushaltsplanung</div>
+      <h2 class="h2" id="f-h2">Drei Säulen für sichere<br><b>Haushaltsplanung</b></h2>
+      <p class="lead" id="f-lead">Speziell für die Planungsrealität von Diakonie, Caritas, AWO und kirchlichen Trägern konfiguriert – nicht für Konzerne, sondern für Ihre Einrichtungen.</p>
+    </div>
+    <div class="ft-tabs">
+      <button class="ftb active" onclick="sfp(0)" id="ftb0">Tab 1</button>
+      <button class="ftb" onclick="sfp(1)" id="ftb1">Tab 2</button>
+      <button class="ftb" onclick="sfp(2)" id="ftb2">Tab 3</button>
+    </div>
+    <div id="fp-cont"></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec" id="cta">
+  <div class="cta-in rev">
+    <span class="cta-mono">// SAP × Diakonie, Caritas &amp; AWO · Jetzt handeln</span>
+    <h2 class="cta-h">Die nächste Ruhestandswelle<br><b>kommt 2026 – 2028.</b></h2>
+    <p class="cta-urg">Wer dann handlungsfähig sein will, muss heute mit der Implementierung beginnen.</p>
+    <p class="cta-p">In einer 60-minütigen Live-Demo zeigen wir Ihnen, wie SAP Analytics Cloud für die Planungsstrukturen Ihrer Einrichtung konfiguriert wird – mit echten Beispielen aus Diakonie und Caritas.</p>
+    <div class="cta-btns">
+      <button class="btn-cp" onclick="alert('Demo-Anfrage übermittelt. Das SAP-Team meldet sich innerhalb von 24 Stunden.')">Live-Demo anfragen →</button>
+      <button class="btn-cs" onclick="alert('Business Case wird vorbereitet...')">Business Case anfordern</button>
+    </div>
+    <p class="cta-note">Kostenlos · Unverbindlich · Speziell für den sozialen Sektor</p>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="con-sec">
+  <div style="max-width:1360px;margin:0 auto">
+    <div class="rev" style="margin-bottom:36px">
+      <div class="ey">// Ihr Ansprechpartner bei SAP</div>
+      <h2 class="h2">Sprechen Sie direkt mit<br><b>dem Experten</b></h2>
+    </div>
+    <div class="rev d1" style="display:grid;grid-template-columns:1fr 1.6fr;gap:24px;align-items:stretch;max-width:820px">
+      <div style="background:linear-gradient(135deg,#EEF5FF,#F5F9FF);border:1px solid #C8DEFF;border-radius:16px;padding:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden">
+        <div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#0070F2,#0090FF);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;margin-bottom:16px;box-shadow:0 10px 28px rgba(0,112,242,.28)">MM</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">Mohammed Mourad</div>
+        <div style="font-size:12px;color:var(--text-m);line-height:1.5;font-weight:300">Solution Sales Executive<br>Finance &amp; Spend Management</div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:6px;background:rgba(0,112,242,.08);border:1px solid rgba(0,112,242,.2);padding:5px 13px;border-radius:100px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#059669;animation:pg 2s infinite"></div>
+          <span style="font-size:10.5px;color:#065F46;font-family:'JetBrains Mono',monospace;font-weight:600">Verfügbar für Demo</span>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:16px;padding:34px;position:relative;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.05)">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--sap),#60A5FA,transparent)"></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sap);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px">// KONTAKT</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <a href="tel:+492102864082" style="display:flex;align-items:center;gap:13px;text-decoration:none;padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);transition:all .2s" onmouseover="this.style.borderColor='rgba(0,112,242,.3)';this.style.background='#EEF5FF'" onmouseout="this.style.borderColor='';this.style.background='var(--bg2)'">
+            <div style="width:32px;height:32px;border-radius:6px;background:rgba(0,112,242,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0070F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.02z"/></svg></div>
+            <div><div style="font-size:9px;color:var(--text-d);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace;margin-bottom:2px">Telefon</div><div style="font-size:13.5px;color:var(--text);font-weight:600">+49 210 28646082</div></div>
+          </a>
+          <a href="tel:+491608432048" style="display:flex;align-items:center;gap:13px;text-decoration:none;padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);transition:all .2s" onmouseover="this.style.borderColor='rgba(0,112,242,.3)';this.style.background='#EEF5FF'" onmouseout="this.style.borderColor='';this.style.background='var(--bg2)'">
+            <div style="width:32px;height:32px;border-radius:6px;background:rgba(0,112,242,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0070F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+            <div><div style="font-size:9px;color:var(--text-d);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace;margin-bottom:2px">Mobil</div><div style="font-size:13.5px;color:var(--text);font-weight:600">+49 160 8432048</div></div>
+          </a>
+          <a href="mailto:mohammed.mourad@sap.com" style="display:flex;align-items:center;gap:13px;text-decoration:none;padding:11px 14px;border-radius:8px;border:1px solid rgba(0,112,242,.2);background:var(--sap-lt);transition:all .2s" onmouseover="this.style.background='#DCE9FF'" onmouseout="this.style.background='var(--sap-lt)'">
+            <div style="width:32px;height:32px;border-radius:6px;background:rgba(0,112,242,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0070F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div><div style="font-size:9px;color:var(--sap);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace;margin-bottom:2px">E-Mail</div><div style="font-size:13px;color:var(--sap);font-weight:600">mohammed.mourad@sap.com</div></div>
+          </a>
+          <div style="display:flex;align-items:flex-start;gap:13px;padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg2)">
+            <div style="width:32px;height:32px;border-radius:6px;background:rgba(0,112,242,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0070F2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+            <div><div style="font-size:9px;color:var(--text-d);text-transform:uppercase;letter-spacing:.8px;font-family:'JetBrains Mono',monospace;margin-bottom:2px">Adresse</div><div style="font-size:12.5px;color:var(--text-m);font-weight:300;line-height:1.5">SAP Deutschland SE &amp; Co. KG<br>SAP-Platz 1, 40882 Ratingen</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div style="display:flex;align-items:center;gap:12px"><div class="nav-sap" style="font-size:11px;padding:3px 7px">SAP</div><span class="fc">© 2025 SAP SE · SAP Analytics Cloud · Sozialer Sektor · Diakonie, Caritas, AWO</span></div>
+  <div class="fl"><a href="#">Impressum</a><a href="#">Datenschutz</a><a href="#">sap.com</a></div>
+</footer>
+
+</div>
+
+<script>
+const UC = [
+  {
+    name:'Haushaltsplanung',
+    bg:'linear-gradient(135deg,#001F54 0%,#003580 40%,#0060D0 100%)',
+    pill:'Haushaltsplanung · Diakonie &amp; Caritas',
+    ey:'Diakonie · Caritas · AWO · Kirchliche Einrichtungen',
+    soft:'Haushaltsplanung für',main:'Diakonie &amp; Caritas –',hi:'endlich beherrschbar.',
+    p:'Kirchensteuern sinken, Pflegesätze stagnieren, Eigenmittel werden knapper – und trotzdem müssen Budgets für dutzende Einrichtungen abgestimmt werden. SAC gibt Ihnen den Überblick zurück.',
+    stats:`<div class="hs"><div class="hs-n">–<span class="counter" data-target="60">0</span><span class="u">%</span></div><div class="hs-l">Planungsaufwand</div></div><div class="hs"><div class="hs-n"><span class="counter" data-target="100">0</span><span class="u">%</span></div><div class="hs-l">Budgetkonform</div></div><div class="hs"><div class="hs-n">Echtzeit</div><div class="hs-l">Konsolidierung</div></div>`,
+    durl:'sac · haushaltsplanung · diakonisches-werk',
+    dtitle:'Haushalts-Cockpit · Diakonisches Werk',
+    dkpis:`<div class="dkp"><div class="dkp-v" style="color:#60A5FA">Plan ✓</div><div class="dkp-l">Budget gesamt</div></div><div class="dkp"><div class="dkp-v" style="color:#4ADE80">Konform</div><div class="dkp-l">Budgetstatus</div></div><div class="dkp"><div class="dkp-v" style="color:#60A5FA">–60%</div><div class="dkp-l">Aufwand</div></div>`,
+    dclbl:'Budgetentwicklung 2025 · alle Einrichtungen',
+    fey:'// SAP Analytics Cloud · Haushaltsplanung',
+    fh2:'Drei Säulen für sichere<br><b>Haushaltsplanung</b>',
+    flead:'Speziell für die Planungsrealität von Diakonie, Caritas, AWO und kirchlichen Trägern konfiguriert – nicht für Konzerne, sondern für Ihre Einrichtungen.',
+    tabs:['Einrichtungs-Konsolidierung','Szenarioplanung','Zuschuss-Management'],
+    panels:[
+      {tag:'KERNFUNKTION 01',h:'Einrichtungs-<b>Konsolidierung</b>',
+       p:'Diakonisches Werk mit 20 Häusern, Caritas-Verband mit 15 Diensten: heute 20 Excel-Dateien, 20 Abstimmungsrunden. SAC konsolidiert alle Budgets auf Trägerebene automatisch – in Echtzeit, ohne manuelle Zusammenführung.',
+       list:['Automatische Konsolidierung aller Einrichtungsbudgets auf Trägerebene','Drill-down von der Gesamtsicht bis zur einzelnen Kostenstelle','Abweichungsanalyse Plan vs. Ist je Einrichtung in Echtzeit','Intercompany-Eliminierung ohne manuelle Buchungen (mit SAP Group Reporting)'],
+       kpis:[{v:'Echtzeit',l:'Konsolidierung aller Häuser'},{v:'0',l:'Manuelle Zusammenführung'},{v:'100%',l:'Transparenz auf Trägerebene'},{v:'–60%',l:'Planungsaufwand'}],
+       ct:'Budgetanteil je Einrichtungstyp',
+       bars:[{l:'Stationäre Pflege',w:'82%',c:'linear-gradient(90deg,#0070F2,#3B82F6)',v:'82%'},{l:'Ambulante Dienste',w:'64%',c:'linear-gradient(90deg,#0891B2,#06B6D4)',v:'64%'},{l:'Kita/Jugendarbeit',w:'51%',c:'linear-gradient(90deg,#0070F2,#3B82F6)',v:'51%'},{l:'Verwaltung/Overhead',w:'35%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'35%'}]},
+      {tag:'KERNFUNKTION 02',h:'Szenario-<b>planung</b>',
+       p:'Was passiert, wenn die Kirchensteuer um 8% sinkt? Wenn ein Pflegesatz nicht erhöht wird? Wenn ein Förderprogramm wegfällt? SAC berechnet alle Szenarien in Sekunden – damit Ihre Geschäftsführung fundiert entscheiden kann.',
+       list:['Mehrere Planszenarien für Kirchensteuer, Pflegesätze, Zuschüsse','Best-/Worst-Case auf Knopfdruck für alle Einrichtungen','Sensitivitätsanalysen: Wie verändert sich das Gesamtergebnis bei X?','Sofortige Neuberechnung bei politischen oder rechtlichen Änderungen'],
+       kpis:[{v:'3+',l:'Szenarien parallel'},{v:'Sekunden',l:'Neuberechnung'},{v:'KI',l:'Predictive Forecast'},{v:'Auto',l:'Abweichungsalerts'}],
+       ct:'Szenariovergleich Budgetentwicklung',
+       bars:[{l:'Best Case',w:'88%',c:'linear-gradient(90deg,#059669,#34D399)',v:'+'},{l:'Basisplan',w:'71%',c:'linear-gradient(90deg,#0070F2,#3B82F6)',v:'='},{l:'Worst Case',w:'48%',c:'linear-gradient(90deg,#DC2626,#F87171)',v:'–'},{l:'Aktuell IST',w:'65%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'~'}]},
+      {tag:'KERNFUNKTION 03',h:'Zuschuss- &amp; <b>Mittelplanung</b>',
+       p:'Kirchensteuerzuweisungen, öffentliche Pflegesätze, kommunale Förderungen, Spendeneinnahmen: SAC plant alle Finanzierungsquellen integriert – und zeigt sofort, wenn eine Quelle wegbricht.',
+       list:['Alle Mittelquellen (Kirchensteuer, Pflegesätze, Zuschüsse, Spenden) in einem System','Verwendungsnachweise direkt aus SAC für Förderberichte abrufbar','Frühwarnsystem bei drohenden Mittelkürzungen oder Liquiditätsengpässen','Automatische Überleitung in Haushaltsplan und Finanzrechnung'],
+       kpis:[{v:'100%',l:'Mittelquellen erfasst'},{v:'Auto',l:'Verwendungsnachweise'},{v:'Früh',l:'Warnsystem aktiv'},{v:'E2E',l:'Von Zuschuss bis Abrechnung'}],
+       ct:'Mittelquellen-Struktur',
+       bars:[{l:'Pflegesätze/SGB',w:'74%',c:'linear-gradient(90deg,#0070F2,#3B82F6)',v:'74%'},{l:'Kirchensteuermittel',w:'56%',c:'linear-gradient(90deg,#7C3AED,#A78BFA)',v:'56%'},{l:'Kommunale Förderung',w:'40%',c:'linear-gradient(90deg,#059669,#34D399)',v:'40%'},{l:'Spenden & Eigenmittel',w:'26%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'26%'}]}
+    ]
+  },
+  {
+    name:'Personalkostenplanung',
+    bg:'linear-gradient(135deg,#001A12 0%,#003520 40%,#005C35 100%)',
+    pill:'Personalkostenplanung · Sozialer Sektor',
+    ey:'Pflege · Sozialarbeit · Kita · Kirchliche Einrichtungen',
+    soft:'Personalplanung für',main:'soziale Einrichtungen –',hi:'strategisch, nicht reaktiv.',
+    p:'Pflegefachkräftemangel, Altersstrukturrisiken, Stellenpläne in Excel: SAC verbindet Personalkostenplanung direkt mit dem Haushalt – und zeigt Jahre im Voraus, wo gehandelt werden muss.',
+    stats:`<div class="hs"><div class="hs-n">+<span class="counter" data-target="10">0</span><span class="u"> J.</span></div><div class="hs-l">Vorausplanung</div></div><div class="hs"><div class="hs-n">–<span class="counter" data-target="60">0</span><span class="u">%</span></div><div class="hs-l">Planungsaufwand</div></div><div class="hs"><div class="hs-n">360°</div><div class="hs-l">Stellentransparenz</div></div>`,
+    durl:'sac · personalkostenplanung · caritasverband',
+    dtitle:'Personal-Cockpit · Caritasverband',
+    dkpis:`<div class="dkp"><div class="dkp-v" style="color:#34D399">Aktuell</div><div class="dkp-l">Planstellen live</div></div><div class="dkp"><div class="dkp-v" style="color:#FCD34D">Hoch</div><div class="dkp-l">Demografierisiko</div></div><div class="dkp"><div class="dkp-v" style="color:#34D399">KI</div><div class="dkp-l">Nachfolge</div></div>`,
+    dclbl:'Demografierisiko-Index je Bereich',
+    fey:'// SAP Analytics Cloud · Personalkostenplanung',
+    fh2:'Drei Säulen für strategische<br><b>Personalplanung</b>',
+    flead:'Von der Pflegefachkraft bis zur Kita-Leitung: SAC macht Personalkostenplanung für soziale Einrichtungen datengestützt – verbunden mit Haushalt, Altersstruktur und Nachfolge.',
+    tabs:['Stellenplan & Kostenplanung','Demografieanalyse','Nachfolgeplanung'],
+    panels:[
+      {tag:'KERNFUNKTION 01',h:'Stellenplan &amp; <b>Kostenplanung</b>',
+       p:'Examinierte Pflegekräfte, Sozialarbeiter, Verwaltung: alle Planstellen Ihrer Einrichtungen direkt mit dem Haushalt verknüpft. Wenn eine Stelle vakant bleibt oder Überstunden anfallen – SAC zeigt die Budgetauswirkung sofort.',
+       list:['Planstellenbezogene Personalkosten je Einrichtung und Kostenstelle','Direkte Verknüpfung mit Haushaltsplan – Abweichungen sofort sichtbar','Headcount-Prognosen inkl. Überstunden, Vertretungskosten, Ausfallzeiten','SAP SuccessFactors als Datenbasis für alle HR-Stammdaten'],
+       kpis:[{v:'Echtzeit',l:'Stellenplan aktuell'},{v:'100%',l:'Budgetkonform'},{v:'–60%',l:'Planungsaufwand'},{v:'KI',l:'Prognosen automatisch'}],
+       ct:'Personalkostenanteile je Bereich',
+       bars:[{l:'Pflegepersonal',w:'88%',c:'linear-gradient(90deg,#059669,#34D399)',v:'88%'},{l:'Sozialarbeit/Beratung',w:'72%',c:'linear-gradient(90deg,#0070F2,#3B82F6)',v:'72%'},{l:'Kita/Pädagogik',w:'58%',c:'linear-gradient(90deg,#059669,#34D399)',v:'58%'},{l:'Verwaltung/Leitung',w:'38%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'38%'}]},
+      {tag:'KERNFUNKTION 02',h:'Altersstruktur-<b>analyse</b>',
+       p:'In vielen Diakonie- und Caritas-Einrichtungen sind 30–40% der Belegschaft über 55 Jahre alt. SAC zeigt auf Knopfdruck: Wo gehen wie viele Mitarbeitende wann in Rente? Welche Fachbereiche sind besonders gefährdet?',
+       list:['Altersstruktur aller Mitarbeitenden pro Einrichtung und Bereich','Abgangswellen visualisiert – 1, 3, 5 und 10 Jahre voraus','KI-gestützte Risikoklassifizierung je Bereich (Pflegekräfte, Sozialarbeit, Kita)','Demografiebericht auf Knopfdruck für Geschäftsführung und Aufsichtsrat'],
+       kpis:[{v:'+10 J.',l:'Vorausschauende Analyse'},{v:'KI',l:'Risikoerkennung'},{v:'360°',l:'Alle Fachbereiche sichtbar'},{v:'Live',l:'Altersstruktur-Dashboard'}],
+       ct:'Demografierisiko-Index (0–100)',
+       bars:[{l:'Pflegefachkräfte',w:'82%',c:'linear-gradient(90deg,#DC2626,#F87171)',v:'82'},{l:'Ambulante Dienste',w:'68%',c:'linear-gradient(90deg,#DC2626,#F87171)',v:'68'},{l:'Kita-Fachkräfte',w:'51%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'51'},{l:'Verwaltung',w:'29%',c:'linear-gradient(90deg,#059669,#34D399)',v:'29'}]},
+      {tag:'KERNFUNKTION 03',h:'Nachfolge-<b>planung</b>',
+       p:'Eine examinierte Pflegedienstleitung mit 30 Jahren Erfahrung geht in Rente – wer übernimmt? SAC identifiziert kritische Rollen, potenzielle interne Nachfolger und den Qualifizierungsbedarf – bevor die Stelle vakant wird.',
+       list:['Kritische Positionen (Pflegedienstleitung, Einrichtungsleitung, Kita-Leitung) abgebildet','Interne Nachfolgekandidaten auf Basis von Qualifikation und Erfahrung identifiziert','Qualifizierungsbedarfe automatisch priorisiert nach Dringlichkeit','Frühwarnmeldung wenn Nachfolgerisiko in kritischen Bereich steigt'],
+       kpis:[{v:'Auto',l:'Risiken erkannt'},{v:'Früh',l:'Warnung vor Vakanzen'},{v:'KI',l:'Kandidaten-Matching'},{v:'0',l:'Ungeplante Vakanzen'}],
+       ct:'Nachfolge-Bereitschaft je Rolle',
+       bars:[{l:'Pflegedienstleitung',w:'32%',c:'linear-gradient(90deg,#DC2626,#F87171)',v:'32%'},{l:'Einrichtungsleitung',w:'48%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'48%'},{l:'Kita-Leitung',w:'41%',c:'linear-gradient(90deg,#DC2626,#F87171)',v:'41%'},{l:'Verwaltungsleitung',w:'75%',c:'linear-gradient(90deg,#059669,#34D399)',v:'75%'}]}
+    ]
+  },
+  {
+    name:'Finanzplanung',
+    bg:'linear-gradient(135deg,#120820 0%,#2D0F5E 40%,#5B21B6 100%)',
+    pill:'Finanzplanung · Soziale Träger',
+    ey:'Träger · Diakonisches Werk · Caritas-Verband · AWO-Kreisverband',
+    soft:'Finanzplanung für',main:'soziale Träger –',hi:'konsolidiert &amp; auditierbar.',
+    p:'Ein Diakonisches Werk, 20 Einrichtungen, 20 separate Abschlüsse – und am Ende monatelange Konsolidierungsarbeit. SAC automatisiert die Träger-Konsolidierung und liefert den Gesamtüberblick in Echtzeit.',
+    stats:`<div class="hs"><div class="hs-n"><span class="counter" data-target="100">0</span><span class="u">%</span></div><div class="hs-l">Konsolidiert</div></div><div class="hs"><div class="hs-n">Echtzeit</div><div class="hs-l">Trägerüberblick</div></div><div class="hs"><div class="hs-n">–<span class="counter" data-target="80">0</span><span class="u">%</span></div><div class="hs-l">Abschlussaufwand</div></div>`,
+    durl:'sac · finanzplanung · awo-kreisverband',
+    dtitle:'Finanz-Cockpit · AWO-Kreisverband',
+    dkpis:`<div class="dkp"><div class="dkp-v" style="color:#A78BFA">Konsolid.</div><div class="dkp-l">Alle Einrichtungen</div></div><div class="dkp"><div class="dkp-v" style="color:#4ADE80">Positiv</div><div class="dkp-l">Liquiditätsstatus</div></div><div class="dkp"><div class="dkp-v" style="color:#A78BFA">–80%</div><div class="dkp-l">Abschlussaufwand</div></div>`,
+    dclbl:'GuV-Entwicklung 2025 · AWO-Kreisverband',
+    fey:'// SAP Analytics Cloud · Finanzplanung',
+    fh2:'Drei Säulen für integrierte<br><b>Träger-Finanzplanung</b>',
+    flead:'Von der einzelnen Pflegeeinrichtung bis zum Jahresabschluss des Trägers – SAC konsolidiert automatisch und liefert prüfungssichere Berichte.',
+    tabs:['Träger-Konsolidierung','GuV &amp; Liquidität','Berichte &amp; Nachweise'],
+    panels:[
+      {tag:'KERNFUNKTION 01',h:'Träger-<b>Konsolidierung</b>',
+       p:'Diakonisches Werk, Caritas-Verband, AWO-Kreisverband: Jede Einrichtung liefert heute ihren eigenen Abschluss. Konsolidierung bedeutet: Monate Arbeit, Fehlerquellen, Fristdruck. SAC automatisiert das vollständig – mit SAP Group Reporting.',
+       list:['Vollautomatische Konsolidierung aller Einrichtungen auf Trägerebene','Intercompany-Eliminierung ohne manuelle Buchungen (SAP Group Reporting)','Jährlicher Konzernabschluss in Wochen statt Monaten','Drill-down von Träger bis zur einzelnen Kostenstelle in einer Ansicht'],
+       kpis:[{v:'Auto',l:'Konsolidierung vollautomatisch'},{v:'0',l:'Manuelle IC-Buchungen'},{v:'–80%',l:'Abschlussaufwand'},{v:'Echtzeit',l:'Trägerüberblick'}],
+       ct:'Ergebnisbeitrag je Einrichtungstyp',
+       bars:[{l:'Stationäre Pflege',w:'84%',c:'linear-gradient(90deg,#7C3AED,#A78BFA)',v:'84%'},{l:'Ambulante Dienste',w:'66%',c:'linear-gradient(90deg,#7C3AED,#A78BFA)',v:'66%'},{l:'Kita/Jugendarbeit',w:'50%',c:'linear-gradient(90deg,#0070F2,#3B82F6)',v:'50%'},{l:'Verwaltung/Overhead',w:'18%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'18%'}]},
+      {tag:'KERNFUNKTION 02',h:'GuV, Bilanz &amp; <b>Liquidität</b>',
+       p:'Gemeinnützige Träger müssen GuV, Bilanz und Liquiditätsplanung nachweisen – gegenüber Aufsicht, Kostenträgern und Zuschussgebern. SAC integriert alle drei in einem Modell, mit monatlicher Vorschau.',
+       list:['Integrierte GuV-, Bilanz- und Liquiditätsplanung für alle Einrichtungen','Monatliche Liquiditätsvorschau – frühzeitig Engpässe erkennen','Automatische Überleitung von Plan zu aktuellem Forecast','Frühwarnsystem bei drohenden Unterdeckungen oder Mittelkürzungen'],
+       kpis:[{v:'E2E',l:'GuV, Bilanz, Liquidität'},{v:'Monatlich',l:'Rollierende Vorschau'},{v:'Auto',l:'Plan-zu-Forecast'},{v:'Früh',l:'Liquiditäts-Warnung'}],
+       ct:'Liquiditätsvorschau nächste 12 Monate',
+       bars:[{l:'Q1 2026',w:'81%',c:'linear-gradient(90deg,#059669,#34D399)',v:'+'},{l:'Q2 2026',w:'73%',c:'linear-gradient(90deg,#059669,#34D399)',v:'+'},{l:'Q3 2026',w:'60%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'~'},{l:'Q4 2026',w:'52%',c:'linear-gradient(90deg,#D97706,#F59E0B)',v:'~'}]},
+      {tag:'KERNFUNKTION 03',h:'Berichte &amp; <b>Verwendungsnachweise</b>',
+       p:'Kostenträger (Pflegekassen, Kommunen, Kirche) verlangen detaillierte Nachweise. Zuschussgeber prüfen Verwendung. Wirtschaftsprüfer auditieren. SAC erstellt alle Berichte automatisch – prüfungssicher und fristgerecht.',
+       list:['Verwendungsnachweise für Kirchenmittel, Pflegesätze, kommunale Zuschüsse','Berichte nach HGB für gemeinnützige Träger automatisiert','Vollständige Audit-Trails für alle Planungsschritte und Änderungen','Anpassung an SGB XI/XII-Abrechnungsanforderungen und Kostenträger'],
+       kpis:[{v:'Auto',l:'Berichte automatisch'},{v:'100%',l:'Revisionssicher'},{v:'HGB',l:'Gemeinnützigkeitskonform'},{v:'0',l:'Manuelle Nacharbeit'}],
+       ct:'Berichts-Automatisierungsgrad',
+       bars:[{l:'Verwendungsnachweise',w:'95%',c:'linear-gradient(90deg,#059669,#34D399)',v:'95%'},{l:'Jahresabschluss',w:'88%',c:'linear-gradient(90deg,#059669,#34D399)',v:'88%'},{l:'Kostenträger-Berichte',w:'84%',c:'linear-gradient(90deg,#059669,#34D399)',v:'84%'},{l:'Ad-hoc-Anfragen',w:'100%',c:'linear-gradient(90deg,#059669,#34D399)',v:'100%'}]}
+    ]
+  }
+];
+
+let cur=0, curFP=0;
+
+// Canvas: soft orbs
+const canvas=document.getElementById('sel-canvas'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight;}
+resize();window.addEventListener('resize',resize);
+const orbs=[
+  {x:.14,y:.3,r:260,c:'rgba(0,112,242,',a:.13,t:0,s:.008},
+  {x:.82,y:.22,r:210,c:'rgba(0,80,192,',a:.1,t:2,s:.006},
+  {x:.5,y:.88,r:190,c:'rgba(0,140,255,',a:.08,t:4,s:.007},
+  {x:.88,y:.72,r:170,c:'rgba(80,40,180,',a:.07,t:1,s:.009},
+];
+let T=0;
+function anim(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#06080F';ctx.fillRect(0,0,W,H);
+  T+=.01;
+  orbs.forEach((o,i)=>{
+    const px=(o.x+Math.sin(T*.7+o.t)*.07)*W;
+    const py=(o.y+Math.cos(T*.5+o.t*.9)*.06)*H;
+    const g=ctx.createRadialGradient(px,py,0,px,py,o.r);
+    g.addColorStop(0,o.c+o.a+')');g.addColorStop(1,o.c+'0)');
+    ctx.beginPath();ctx.arc(px,py,o.r,0,Math.PI*2);
+    ctx.fillStyle=g;ctx.fill();
+  });
+  // subtle dot grid
+  ctx.fillStyle='rgba(255,255,255,.022)';
+  for(let x=0;x<W;x+=64)for(let y=0;y<H;y+=64){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill();}
+  if(document.getElementById('selector').style.display!=='none')requestAnimationFrame(anim);
+}
+anim();
+
+function go(idx){
+  cur=idx;
+  document.getElementById('selector').classList.add('out');
+  setTimeout(()=>{
+    document.getElementById('selector').style.display='none';
+    document.getElementById('main').style.opacity='1';
+    apply(idx);startCounters();initReveal();
+  },600);
+}
+
+function sw(idx){
+  cur=idx;apply(idx);
+  document.querySelectorAll('.nsw').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(startCounters,200);
+}
+
+function apply(idx){
+  const u=UC[idx];
+  document.getElementById('nav-ttl').innerHTML=`Analytics Cloud · Diakonie, Caritas &amp; AWO · ${u.name}`;
+  document.querySelectorAll('.nsw').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  document.getElementById('hbg').style.background=u.bg;
+  document.getElementById('h-pill').innerHTML=u.pill;
+  document.getElementById('h-ey').textContent=u.ey;
+  document.getElementById('h-soft').textContent=u.soft;
+  document.getElementById('h-main').innerHTML=u.main;
+  document.getElementById('h-hi').innerHTML=u.hi;
+  document.getElementById('h-p').textContent=u.p;
+  document.getElementById('h-stats').innerHTML=u.stats;
+  document.getElementById('h-url').textContent=u.durl;
+  document.getElementById('h-dtitle').textContent=u.dtitle;
+  document.getElementById('h-dkpis').innerHTML=u.dkpis;
+  document.getElementById('h-dclbl').textContent=u.dclbl;
+  document.getElementById('f-ey').textContent=u.fey.replace('// ','');
+  document.getElementById('f-h2').innerHTML=u.fh2;
+  document.getElementById('f-lead').textContent=u.flead;
+  ['ftb0','ftb1','ftb2'].forEach((id,i)=>document.getElementById(id).textContent=u.tabs[i]);
+  curFP=0;
+  renderPanels(u);
+  document.querySelectorAll('.ftb').forEach((t,i)=>t.classList.toggle('active',i===0));
+}
+
+function renderPanels(u){
+  document.getElementById('fp-cont').innerHTML=u.panels.map((p,i)=>`
+    <div class="fp${i===0?' active':''}" id="fp${i}">
+      <div>
+        <div class="fp-tag">${p.tag}</div>
+        <h3 class="fp-h">${p.h}</h3>
+        <p class="fp-p">${p.p}</p>
+        <ul class="fp-ul">${p.list.map(l=>`<li><span class="fp-ck">✓</span>${l}</li>`).join('')}</ul>
+      </div>
+      <div class="mock">
+        <div class="mock-bar">
+          <div class="dbd"><div class="dbt dbt1"></div><div class="dbt dbt2"></div><div class="dbt dbt3"></div></div>
+          <div class="mock-url">${p.tag}</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-kpis">${p.kpis.map(k=>`<div class="mkp"><div class="mkp-v" style="color:var(--sap)">${k.v}</div><div class="mkp-l">${k.l}</div></div>`).join('')}</div>
+          <div class="mock-ct">${p.ct}</div>
+          ${p.bars.map(b=>`<div class="mock-row"><div class="mock-lbl">${b.l}</div><div class="mock-track"><div class="mock-fill" style="background:${b.c};width:${b.w}"></div></div><div class="mock-val" style="color:var(--text-m)">${b.v}</div></div>`).join('')}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function sfp(i){
+  document.querySelectorAll('.ftb').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.fp').forEach((p,j)=>p.classList.toggle('active',j===i));
+}
+
+function startCounters(){
+  document.querySelectorAll('.counter').forEach(el=>{
+    const t=+el.dataset.target,s=performance.now(),d=1400;
+    (function step(n){const p=Math.min((n-s)/d,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(e*t);if(p<1)requestAnimationFrame(step);})(performance.now());
+  });
+}
+
+function initReveal(){
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('on');}),{threshold:.08});
+  document.querySelectorAll('.rev').forEach(el=>{el.classList.remove('on');obs.observe(el);});
+}
+</script>
+</body>
+</html>
